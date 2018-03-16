@@ -1,9 +1,13 @@
-class RemoveEnvironmentToSpreeTrackers < SolidusSupport::Migration[4.2][5.0]
+class RemoveEnvironmentToSpreeTrackers < SolidusSupport::Migration[4.2]
   def up
-    remove_column :spree_trackers, :environment
+    if column_exists?(:spree_trackers, :environment)
+      remove_column :spree_trackers, :environment
+    end
   end
 
   def down
-    add_column :spree_trackers, :environment, :string
+    unless column_exists?(:spree_trackers, :environment)
+      add_column :spree_trackers, :environment, :string
+    end
   end
 end
