@@ -1,0 +1,135 @@
+<% tracker = Spree::Tracker.by_type(current_store, 'facebook_pixel') %>
+
+<% if tracker %>
+  <script id='solidus_trackers_facebook_pixel'>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    // event: PageView
+    fbq('init', '<%= tracker.analytics_id %>');
+    fbq('track', 'PageView');
+
+    // event: AddToCart
+    <% if SolidusTrackers::Config.fb_url_mapping['AddToCart'].in?(request.path) %>
+      $('#cart-form form:first').submit(function(e) {
+        var el = $('input[type=radio][name=variant_id]:checked');
+        var quantity =   $('input[type=number]#quantity').val();
+        var id = price = '';
+
+        if (el.length > 0) {
+          id = $(el).val();
+          price = $(el).data('price').substring(1);
+        } else {
+          id = $('input[type=hidden]#variant_id').val();
+          price = $('span.price').attr('content');
+        }
+
+        fbq('track', 'AddToCart', {
+          content_name: 'cart',
+          content_type: 'product',
+          value: id,
+          content_ids: [id],
+          contents: [{
+            id: id,
+            quantity: quantity,
+            item_price: price
+          }],
+          content_type: 'product'
+        });
+      })
+    <% end %>
+
+    // event: Lead
+    <% if SolidusTrackers::Config.fb_url_mapping['Lead'].in?(request.path) %>
+      $('#new-customer form#new_spree_user').submit(function(e) {
+        var email = $('input[type=email]#spree_user_email').val();
+
+        fbq('track', 'Lead', {
+          content_name: 'signup',
+          value: email
+        });
+      });
+    <% end %>
+
+    // event: AddToWishlist
+    // reference: solidus_wishlist extension
+    <% if SolidusTrackers::Config.fb_url_mapping['AddToWishlist'].in?(request.path) %>
+      $('#wishlist-form form#new_wished_product').submit(function(e) {
+        var id = $('input[type=hidden]#variant_id').val();
+        var quantity =   $('input[type=number]#quantity').val();
+        var price = $('span.price').attr('content');
+
+        fbq('track', 'AddToWishlist', {
+          content_name: 'wishlist',
+          content_ids: [id],
+          contents: [{
+            id: id,
+            quantity: quantity,
+            item_price: price
+          }],
+        });
+      });
+    <% end %>
+
+    // event: CompleteRegistration
+    <% if SolidusTrackers::Config.fb_url_mapping['CompleteRegistration'].in?(request.path) %>
+      var flash_message = $('.flash.notice')
+      var success_message = '<%= I18n.t('devise.user_registrations.signed_up')%>'
+
+      if (flash_message.val() === success_message) {
+        fbq('track', 'CompleteRegistration', {
+          content_name: 'signup',
+          value: '<%= spree_current_user && spree_current_user.email %>',
+          status: 'success',
+        });
+      };
+    <% end %>
+
+    <% if @order %>
+    // event: Purchase
+      <% if order_just_completed?(@order) %>
+        fbq('track', 'Purchase', {
+          currency: '<%= @order.currency %>',
+          value: '<%= @order.total.to_f %>',
+          contents: <%= @order.line_items.to_json.html_safe %>,
+          content_ids: <%= @order.line_items.map(&:sku).html_safe %>,
+          content_type: 'order'
+        });
+      <% end %>
+
+      // event: InitiateCheckout
+      <% if SolidusTrackers::Config.fb_url_mapping['InitiateCheckout'].in?(request.path) %>
+        fbq('track', 'InitiateCheckout', {
+          currency: '<%= @order.currency %>',
+          content_ids: <%= @order.line_items.map(&:sku).html_safe %>,
+          contents: <%= @order.line_items.to_json.html_safe %>,
+          num_items: <%= @order.line_items.count %>
+        });
+      <% end %>
+
+      // event: AddPaymentInfo
+      <% if SolidusTrackers::Config.fb_url_mapping['AddPaymentInfo'].in?(request.path) %>
+        fbq('track', 'AddPaymentInfo', {
+          currency: '<%= @order.currency %>',
+          content_ids: <%= @order.line_items.map(&:sku).html_safe %>,
+          contents: <%= @order.line_items.to_json.html_safe %>,
+        });
+      <% end %>
+    <% end %>
+
+    // event: Search
+    <% if SolidusTrackers::Config.fb_url_mapping['Search'].in?(request.path) %>
+      <% if params[:keywords] %>
+        fbq('track', 'Search',  {
+          search_string: '<%= params[:keywords] %>'
+        });
+      <% end %>
+    <% end %>
+  </script>
+<% end %>

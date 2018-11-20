@@ -13,3 +13,11 @@ Deface::Override.new(
   disabled: false,
   partial: "spree/shared/google_manager"
 )
+
+Deface::Override.new(
+  virtual_path: "spree/layouts/spree_application",
+  name: "facebook_pixel_partial",
+  insert_bottom: "[data-hook='body']",
+  disabled: false,
+  partial: "spree/shared/facebook_pixel"
+)
